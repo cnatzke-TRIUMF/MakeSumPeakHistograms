@@ -11,13 +11,14 @@
 #include <fstream>
 #include "HistogramManager.h"
 #include "progress_bar.h"
+#include "globals.h"
 
 /************************************************************//**
  * Creates and Fills histograms
  *
  * @param verbose Verbosity level
  ***************************************************************/
-void HistogramManager::GenerateHistogramFile(TChain *inputChain, const char * linearParamFile)
+void HistogramManager::MakeHistogramFile(TChain *inputChain, std::string linearParamFile)
 {
 	int verbose = 0;
 
@@ -32,7 +33,7 @@ void HistogramManager::GenerateHistogramFile(TChain *inputChain, const char * li
 	std::cout << "Reading secondary calibration parameters ... [DONE]" << std::endl;
 
 	if (verbose > 0) {
-		for (int i = 0; i < (sizeof(gains)/sizeof(*gains)); i++) {
+		for (unsigned int i = 0; i < (sizeof(gains)/sizeof(*gains)); i++) {
 			std::cout << "Channel " << i << " Gain " << gains[i] << " Offset: "<< offsets[i] << std::endl;
 		}
 	}
@@ -45,6 +46,7 @@ void HistogramManager::GenerateHistogramFile(TChain *inputChain, const char * li
 
 	std::cout << "Generating Post-Calibrated Histograms ... [DONE]" << std::endl;
 } // GenerateHistogramFile
+
 /************************************************************//**
  * Initializes histograms to be filled
  *
@@ -82,6 +84,7 @@ void HistogramManager::FillHistograms(TChain *gChain)
 	float ggPrompt = 30.; // max time difference for gamma gamma; 30 ns
 	float bgLow = 500.; // min time difference for gamma gamma time random
 	float bgHigh = 2000.; // max time diff for gamma gamma time random
+	float gate_threshold = 3; // bounds of energy gate (-+ 3)
 
 	if (gChain->FindBranch("TGriffin")) {
 		gChain->SetBranchAddress("TGriffin", &fGrif);
@@ -117,7 +120,7 @@ void HistogramManager::FillHistograms(TChain *gChain)
 					double angle = pos_vec.at(g1).Angle(pos_vec.at(g2)) * 180. / TMath::Pi();
 					if (angle < 0.0001) continue;
 
-					int angleIndex = GetAngleIndex(angle, fAngleCombinations);
+					int angleIndex = GetAngleIndex(angle, angle_combinations_vec);
 					double ggTime = TMath::Abs(time_vec.at(g1) - time_vec.at(g2));
 
 					// check for bad angles
@@ -127,19 +130,19 @@ void HistogramManager::FillHistograms(TChain *gChain)
 					}
 
 					// Prompt coincidences
-					if (ggTime < ggHigh) {
+					if (ggTime < ggPrompt) {
 						hist_vec_1D.at(0)->Fill(energy_vec.at(g1) + energy_vec.at(g2));
-						if (EnergyGate(1022, energy_vec.at(g1), energy_vec.at(g2), threshold)) {
+						if (EnergyGate(1022, energy_vec.at(g1), energy_vec.at(g2), gate_threshold)) {
 							hist_vec_2D.at(0)->Fill(angle, energy_vec.at(g1));
 							hist_vec_2D.at(0)->Fill(angle, energy_vec.at(g2));
 						}
 					}
 					// Background subtraction
 					else if (bgLow < ggTime && ggTime < bgHigh) {
-						hist_vec_1D.at(0)->Fill(energy_vec.at(g1) + energy_vec.at(g2), -ggHigh/(bgHigh-bgLow));
-						if (EnergyGate(1022, energy_vec.at(g1), energy_vec.at(g2), threshold)) {
-							hist_vec_2D.at(0)->Fill(angle, energy_vec.at(g1), -ggHigh/(bgHigh-bgLow));
-							hist_vec_2D.at(0)->Fill(angle, energy_vec.at(g2), -ggHigh/(bgHigh-bgLow));
+						hist_vec_1D.at(0)->Fill(energy_vec.at(g1) + energy_vec.at(g2), -ggPrompt/(bgHigh-bgLow));
+						if (EnergyGate(1022, energy_vec.at(g1), energy_vec.at(g2), gate_threshold)) {
+							hist_vec_2D.at(0)->Fill(angle, energy_vec.at(g1), -ggPrompt/(bgHigh-bgLow));
+							hist_vec_2D.at(0)->Fill(angle, energy_vec.at(g2), -ggPrompt/(bgHigh-bgLow));
 						}
 					}
 				} // grif2
@@ -154,7 +157,7 @@ void HistogramManager::FillHistograms(TChain *gChain)
 					for(unsigned int g3 = 0; g3 < multLG; ++g3) {
 						double angle = pos_vec.at(g1).Angle(lastgrifPosition.at(lg).at(g3)) * 180. / TMath::Pi();
 						if (angle < 0.0001) continue;
-						int angleIndex = GetAngleIndex(angle, fAngleCombinations);
+						int angleIndex = GetAngleIndex(angle, angle_combinations_vec);
 
 						// Filling histogram
 						hist_vec_2D.at(1)->Fill(energy_vec.at(g1), lastgrifEnergy.at(lg).at(g3));
@@ -187,7 +190,7 @@ void HistogramManager::FillHistograms(TChain *gChain)
 	progress_bar.done();
 } // FillHistograms
 
-/***************************************************************
+/************************************************************//**
 * Applies linear calibration to data points
 *
 ***************************************************************/
@@ -197,7 +200,7 @@ void HistogramManager::PreProcessData()
 	int det_id = -1;
 	int multiplicity_limit = 2;
 
-	if (fGrif->GetSuppressedMultiplicity(fGriffinBgo) == 2) { // multiplicity filter
+	if (fGrif->GetSuppressedMultiplicity(fGriffinBgo) == multiplicity_limit) { // multiplicity filter
 		for (auto j = 0; j < fGrif->GetSuppressedMultiplicity(fGriffinBgo); ++j) {
 			det_id = fGrif->GetSuppressedHit(j)->GetArrayNumber();
 			if (det_id == -1) {
@@ -213,7 +216,7 @@ void HistogramManager::PreProcessData()
 			// No secondary calibration
 			//energyTmp = fGrif->GetSuppressedHit(j)->GetEnergy();
 
-			energy_vec.push_back(energyTmp);
+			energy_vec.push_back(energy_temp);
 			pos_vec.push_back(fGrif->GetSuppressedHit(j)->GetPosition(145.0));
 			time_vec.push_back(fGrif->GetSuppressedHit(j)->GetTime());
 //		detector_vec.push_back(det);
@@ -222,7 +225,7 @@ void HistogramManager::PreProcessData()
 
 } // PreProcessData
 
-/***************************************************************
+/************************************************************//**
 * Filter for energy gating
 *
 * @param gate Energy of interest (keV)
@@ -237,7 +240,8 @@ bool HistogramManager::EnergyGate(float gate, float hit_1_energy, float hit_2_en
 	return (hit_1_energy + hit_2_energy > gate_lower) && (hit_1_energy + hit_2_energy < gate_upper);
 } // EnergyGate()
 
-/***************************************************************
+
+/************************************************************//**
 * Writes output ROOT file
 *
 ***************************************************************/
@@ -257,3 +261,90 @@ void HistogramManager::WriteHistogramsToFile()
 	delete out_file;
 
 } // WriteHistogramsToFile
+
+
+/************************************************************//**
+ * Returns the angular index
+ *
+ * @param angle The angle between two gammas
+ * @param vec Vector of angles
+ *****************************************************************************/
+int HistogramManager::GetAngleIndex(double angle, std::vector<double> vec)
+{
+
+	// corner cases
+	if (angle <= vec.front()) { return 0;}
+	if (angle >= vec.back() - 1.) { return vec.size() - 1;}
+
+	// binary search
+	unsigned int i = 0, j = vec.size(), mid = 0;
+	while ( i < j ) {
+		mid = (i + j) / 2;
+
+		if (vec[mid] == angle) return vec[mid];
+
+		// searching left half
+		if (angle < vec[mid]) {
+			// if angle is greater than previous to mid, return closest of two
+			if (mid > 0 && angle > vec[mid - 1]) {
+				return GetClosest(mid - 1, mid, angle_combinations_vec, angle);
+			}
+
+			// repeat for left half
+			j = mid;
+		}
+		// if angle is greater than mid
+		else{
+			if (mid < vec.size() - 1 && angle < vec[mid + 1]) {
+				return GetClosest(mid, mid + 1, angle_combinations_vec, angle);
+			}
+
+			// update i
+			i = mid + 1;
+		}
+	}
+	// Only single element left after search
+	return mid;
+} // GetAngleIndex
+
+/************************************************************//**
+ * Returns the value closest to the target
+ * Assumes val2 is greater than val1 and target lies inbetween the two
+ *
+ * @param val1 First value to compare
+ * @param val2 Second value to compare
+ * @param vec Vector of values
+ * @param target Target value
+ *****************************************************************************/
+int HistogramManager::GetClosest(int val1, int val2, std::vector<double> vec, double target)
+{
+	if ((target - vec[val1]) >= (vec[val2] - target))
+		return val2;
+	else
+		return val1;
+} // GetClosest
+
+/************************************************************//**
+ * Displays humourous loading message
+ *
+ ***************************************************************/
+void HistogramManager::DisplayLoadingMessage() {
+
+	std::string line;
+	int random = 0;
+	int numOfLines = 0;
+	std::ifstream File("loadingQuotes.txt");
+
+	random = rand() % 131;
+
+	while(getline(File, line))
+	{
+		++numOfLines;
+
+		if(numOfLines == random)
+		{
+			std::cout << line << std::endl;
+		}
+	}
+
+} // DisplayLoadingMessage
