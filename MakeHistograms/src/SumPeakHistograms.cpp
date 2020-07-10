@@ -93,9 +93,9 @@ void AutoFileDetect(std::string fileName){
 	else if (ext == "cal") {
 		notifier->AddCalFile(fileName);
     }
-	else if (ext == "dat") {
+	else if (ext == "scal") {
 		lin_coeff_file = fileName;
-		std::cout << "Found unknown file: " << fileName.c_str() << std::endl;
+		std::cout << "Found secondary calibration file: " << fileName.c_str() << std::endl;
 	} else {
 		std::cerr << "Discarding unknown file: " << fileName.c_str() << std::endl;
 	}

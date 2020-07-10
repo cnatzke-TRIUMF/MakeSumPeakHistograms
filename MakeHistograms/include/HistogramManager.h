@@ -33,6 +33,7 @@ private:
 
     std::vector<TH1D*> hist_vec_1D;
     std::vector<TH2D*> hist_vec_2D;
+    std::vector<TH2D*> hist_vec_2D_mixed;
 
     std::vector<float> energy_vec; // vector which contains the energy values
     std::vector<long> time_vec; // vector which contains the time values
@@ -40,8 +41,8 @@ private:
     //std::vector<int> detector_vec; // vector which contains the detector values
 
     int checkMix, lgsize, event_mixing_depth = 11;
-    std::vector<std::vector<float>> lastgrifEnergy;
-    std::vector<std::vector<TVector3>> lastgrifPosition;
+    std::vector<std::vector<float>> last_grif_energy;
+    std::vector<std::vector<TVector3>> last_grif_pos;
 };
 
 #endif
