@@ -1,13 +1,15 @@
 #!/bin/bash
 
 ANALDIR=/tig/belodon_data4/S9038/S9038-Nov2019/AnalysisTrees
-HISTDIR=/tig/belodon_data4/S9038/Projects/GammaGammaAnalysis/GenerateHistograms/myAnalysis/Histograms
+HISTDIR=/tig/belodon_data4/S9038/Projects/SumPeakAnalysis/MakeHistograms/myOutput
+SCALDIR=/tig/belodon_data4/S9038/Projects/SumPeakAlignment/myOutput/LinearCalibrationParameters/UnformattedOutput
+
 DLEN=${#ANALDIR}
-SORTCODE=/tig/belodon_data4/S9038/Projects/GammaGammaAnalysis/GenerateHistograms/myBuild/GammaGammaAnalysis
+SORTCODE=/tig/belodon_data4/S9038/Projects/SumPeakAnalysis/MakeHistograms/myBuild/SumPeakHistograms
 
 # calibration files
-#CALFILE=/tig/belodon_data4/S9038/S9038-Nov2019/PreSrcCal.cal
-CALFILE=/tig/belodon_data4/S9038/S9038-Nov2019/PostSrcCal.cal
+CALFILE=/tig/belodon_data4/S9038/S9038-Nov2019/PreSrcCal.cal
+#CALFILE=/tig/belodon_data4/S9038/S9038-Nov2019/PostSrcCal.cal
 #CFILE=/tig/belodon_data4/S9038/PostSrcCal.cal
 
 m=15600 #Only Sort after this run First good run: 52042
@@ -119,7 +121,15 @@ then
     BATCH_COUNTER=0
 
     RUNFILES=$ANALDIR/analysis${i}_"*".root
-    HFILE=$HISTDIR/gg_${i}.root
+    HFILE=$HISTDIR/energy_angle_${i}.root
+    SCALFILE=$SCALDIR/secondary_linear_cal_parameters_${1}.txt
+
+    if [ ! -f "$SCALFILE" ]; then
+        echo "::: ERROR ::: Cannot find"
+        echo "$SCALFILE"
+        echo "::: EXITING ::: "
+        exit 1
+    fi
 
     FILE_LIST=$(find ${ANALDIR}/ -name analysis"$1"_???.root | sort)
     NUM_FOUND=$(find ${ANALDIR}/ -name analysis"$1"_???.root | wc -l)
@@ -141,10 +151,10 @@ then
             then
                 if [ ! -f $HFILE ];
                 then
-                    #echo "$SORTCODE ${FILE_BATCH[@]} $CALFILE"
-                    #echo "mv gg_* $HISTDIR/gg_$1_$BATCH_COUNTER.root"
-                    $SORTCODE ${FILE_BATCH[@]} $CALFILE
-                    mv gg_* $HISTDIR/gg_${1}_${BATCH_COUNTER}.root
+                    #echo "$SORTCODE ${FILE_BATCH[@]} $CALFILE $SCALFILE"
+                    #echo "mv secondary_calibrated_histograms_* $HISTDIR/energy_angle_${1}_${BATCH_COUNTER}.root"
+                    $SORTCODE ${FILE_BATCH[@]} $CALFILE $SCALFILE
+                    mv secondary_calibrated_histograms* $HISTDIR/energy_angle_${1}_${BATCH_COUNTER}.root
                 fi
                 if [ -f $HFILE ]
                 then
@@ -165,15 +175,15 @@ then
         # Process remaining files
         if (( $BATCH_COUNTER == $((TOTAL_BATCHES - 1))  && (( $FILE_ITER == $NUM_FOUND)) ))
         then
-            echo "Files: ${FILE_BATCH[@]}"
+            #echo "Files: ${FILE_BATCH[@]}"
             if [ $1 -gt $m ] && [ $n -gt $1 ];
             then
                 if [ ! -f $HFILE ];
                 then
-                    #echo "$SORTCODE ${FILE_BATCH[@]} $CALFILE"
-                    #echo "mv gg_* $HISTDIR/gg_$1_$BATCH_COUNTER.root"
-                    $SORTCODE ${FILE_BATCH[@]} $CALFILE
-                    mv gg_* $HISTDIR/gg_${i}_total.root
+                    #echo "$SORTCODE ${FILE_BATCH[@]} $CALFILE $SCALFILE"
+                    #echo "mv secondary_calibrated_histograms_* $HISTDIR/energy_angle_${1}_${BATCH_COUNTER}.root"
+                    $SORTCODE ${FILE_BATCH[@]} $CALFILE $SCALFILE
+                    mv secondary_calibrated_histograms* $HISTDIR/energy_angle_${1}_${BATCH_COUNTER}.root
                 fi
                 if [ -f $HFILE ]
                 then

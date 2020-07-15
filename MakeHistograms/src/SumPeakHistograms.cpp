@@ -93,7 +93,7 @@ void AutoFileDetect(std::string fileName){
 	else if (ext == "cal") {
 		notifier->AddCalFile(fileName);
     }
-	else if (ext == "scal") {
+	else if (ext == "txt") {
 		lin_coeff_file = fileName;
 		std::cout << "Found secondary calibration file: " << fileName.c_str() << std::endl;
 	} else {
@@ -129,6 +129,6 @@ void PrintUsage(char* argv[]){
 	          << "usage: " << argv[0] << " calibration_file analysis_tree [analysis_tree_2 ... ] linear_parameter_file\n"
 	          << " calibration_file:       calibration file (must end with .cal)\n"
 	          << " analysis_tree:          analysis tree to process (must end with .root)\n"
-	          << " linear_parameter_file:  contains secondary linear parameters (must end with .dat)"
+	          << " linear_parameter_file:  contains secondary linear parameters (must end with .txt)"
 	          << std::endl;
 } // end PrintUsage

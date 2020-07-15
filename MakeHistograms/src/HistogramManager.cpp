@@ -13,7 +13,7 @@
 #include "progress_bar.h"
 #include "globals.h"
 
-std::vector<float> energy_gates_vec = {1022, 1460, 1760};
+std::vector<float> energy_gates_vec = {700, 1022, 1460, 1760, 2614};
 
 /************************************************************//**
  * Creates and Fills histograms
