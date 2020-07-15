@@ -1,0 +1,16 @@
+#ifndef SUMPEAKHISTOGRAMS_H
+#define SUMPEAKHISTOGRAMS_H
+
+// configured options for GammaGamma
+#define SumPeakHistograms_VERSION_MAJOR @SumPeakHistograms_VERSION_MAJOR@
+#define SumPeakHistograms_VERSION_MINOR @SumPeakHistograms_VERSION_MINOR@
+
+int main(int argc, char **argv);
+int ProcessData();
+void AutoFileDetect(std::string fileName);
+void OpenRootFile(std::string fileName);
+void PrintUsage(char* argv[]);
+
+std::string lin_coeff_file;
+
+#endif
